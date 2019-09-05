@@ -5,7 +5,7 @@ import cats.effect.{Resource, Sync}
 import cats.syntax.applicativeError._
 import cats.syntax.bifunctor._
 import cats.syntax.either._
-import io.circe.Error
+import com.github.pawelj_pl.fcm4s.ConfigError
 import io.circe.generic.extras.{Configuration, ConfiguredJsonCodec}
 import io.circe.parser.decode
 import org.http4s.circe._
@@ -15,7 +15,7 @@ import scala.io.{BufferedSource, Source}
 import scala.util.control.NonFatal
 
 @ConfiguredJsonCodec
-case class CredentialsConfig(clientId: String, clientEmail: String, tokenUri: Uri, privateKey: String, privateKeyId: String)
+case class CredentialsConfig(clientId: String, clientEmail: String, tokenUri: Uri, privateKey: String, privateKeyId: String, projectId: String)
 
 object CredentialsConfig {
   implicit val customConfig: Configuration = Configuration.default.withSnakeCaseMemberNames
@@ -30,11 +30,4 @@ object CredentialsConfig {
     .map(_.mkString)
     .use(content => Sync[F].delay(content.asRight[ConfigError]))
     .recover{case NonFatal(e) => ConfigError.UnableToReadConfigFile(e).asLeft[String]}
-}
-
-sealed trait ConfigError extends Product with Serializable
-
-object ConfigError {
-  case class UnableToReadConfigFile(error: Throwable) extends ConfigError
-  case class ConfigParsingError(error: Error) extends ConfigError
 }

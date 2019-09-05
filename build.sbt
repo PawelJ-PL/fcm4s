@@ -4,15 +4,15 @@ val commonScalacOptions = Seq(
   "-deprecation",
   "-encoding",
   "UTF-8",
-  "-unchecked",
-  "-explaintypes",
-  "-Xfatal-warnings",
-  "-Xlint:infer-any",
-  "-Xlint:private-shadow",
-  "-Xlint:missing-interpolator",
-  "-Ywarn-dead-code",
-  "-Ywarn-unused",
-  "-Ywarn-unused:privates",
+//  "-unchecked",
+//  "-explaintypes",
+//  "-Xfatal-warnings",
+//  "-Xlint:infer-any",
+//  "-Xlint:private-shadow",
+//  "-Xlint:missing-interpolator",
+//  "-Ywarn-dead-code",
+//  "-Ywarn-unused",
+//  "-Ywarn-unused:privates",
 )
 
 def versionDependentScalacOptions(scalaVersion: String): Seq[String] = CrossVersion.partialVersion(scalaVersion) match {
@@ -54,6 +54,8 @@ def tsecVersion(scalaVersion: String): String = CrossVersion.partialVersion(scal
   case _                                         => "0.2.0-M1"
 }
 
+val scalaCacheVersion = "0.28.0"
+
 val commonSettings = Seq(
   organization := "com.github.pawelj-pl",
   name := "fcm4s",
@@ -68,7 +70,7 @@ val core = (project in file("modules/core"))
     name += "-core",
     libraryDependencies ++= {
       val cats = Seq(
-        "org.typelevel" %% "cats-effect" % "2.0.0-M5"
+        "org.typelevel" %% "cats-effect" % catsEffectVersion(scalaVersion.value)
       )
 
       val circe = Seq(
@@ -87,7 +89,12 @@ val core = (project in file("modules/core"))
         "io.github.jmcardon" %% "tsec-signatures"
       ).map(_ % tsecVersion(scalaVersion.value))
 
-      circe ++ cats ++ http4s ++ tsec ++ versionDependentDependencies(scalaVersion.value)
+      val scalaCache = Seq(
+        "com.github.cb372" %% "scalacache-core",
+        "com.github.cb372" %% "scalacache-caffeine"
+      ).map(_ % scalaCacheVersion)
+
+      circe ++ cats ++ http4s ++ tsec ++ scalaCache ++ versionDependentDependencies(scalaVersion.value)
     }
   )
 
