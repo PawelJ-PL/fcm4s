@@ -3,11 +3,19 @@ package com.github.pawelj_pl.fcm4s.messaging
 import io.circe.{Encoder, Json}
 import io.circe.syntax._
 
-case class Message[A: Encoder](destination: Destination, title: String, data: A)
+sealed trait Message[A]
 
 object Message {
-  implicit def encoder[A: Encoder]: Encoder[Message[A]] = new Encoder[Message[A]] {
-    override def apply(a: Message[A]): Json = {
+  implicit def encoder[A: Encoder]: Encoder[Message[A]] = Encoder.instance{
+    case m: DataMessage[A] => m.asJson
+  }
+}
+
+case class DataMessage[A: Encoder](destination: Destination, data: A) extends Message[A]
+
+object DataMessage {
+  implicit def encoder[A: Encoder]: Encoder[DataMessage[A]] = new Encoder[DataMessage[A]] {
+    override def apply(a: DataMessage[A]): Json = {
       val destinationJson = a.destination match {
         case Destination.Token(t)     => ("token", Json.fromString(t))
         case Destination.Topic(t)     => ("topic", Json.fromString(t))
@@ -16,10 +24,11 @@ object Message {
       Json.obj(
         ("message", Json.obj(
           destinationJson,
-          ("notification", Json.obj(
-            ("title", Json.fromString(a.title)),
-            ("body", a.data.asJson)
-          ))
+          ("data", a.data.asJson),
+//          ("notification", Json.obj(
+//            ("title", Json.fromString(a.title)),
+//            ("body", a.data.asJson)
+//          ))
         ))
       )
     }
