@@ -1,7 +1,7 @@
 package com.github.pawelj_pl.fcm4s.http4s
 
 import cats.data.Chain
-import cats.effect.{ConcurrentEffect, Sync}
+import cats.effect.{ConcurrentEffect, Resource, Sync}
 import cats.syntax.either._
 import cats.syntax.functor._
 import com.github.pawelj_pl.fcm4s.http.HttpBackend
@@ -38,6 +38,6 @@ class Http4sBackend[F[_]: Sync](client: Client[F]) extends HttpBackend[F] {
 
 object Http4sBackend {
   def apply[F[_]: Sync](client: Client[F]): Http4sBackend[F] = new Http4sBackend(client)
-  def create[F[_]: ConcurrentEffect](executionContext: ExecutionContext): F[Http4sBackend[F]] =
-    BlazeClientBuilder[F](executionContext).resource.use(client => Sync[F].delay(Http4sBackend(client)))
+  def create[F[_]: ConcurrentEffect](executionContext: ExecutionContext): Resource[F, Http4sBackend[F]] =
+    BlazeClientBuilder[F](executionContext).resource.map(client => Http4sBackend(client))
 }

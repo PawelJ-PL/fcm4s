@@ -4,15 +4,15 @@ val commonScalacOptions = Seq(
   "-deprecation",
   "-encoding",
   "UTF-8",
-//  "-unchecked",
-//  "-explaintypes",
-//  "-Xfatal-warnings",
-//  "-Xlint:infer-any",
-//  "-Xlint:private-shadow",
-//  "-Xlint:missing-interpolator",
-//  "-Ywarn-dead-code",
-//  "-Ywarn-unused",
-//  "-Ywarn-unused:privates",
+  "-unchecked",
+  "-explaintypes",
+  "-Xfatal-warnings",
+  "-Xlint:infer-any",
+  "-Xlint:private-shadow",
+  "-Xlint:missing-interpolator",
+  "-Ywarn-dead-code",
+  "-Ywarn-unused",
+  "-Ywarn-unused:privates",
 )
 
 def versionDependentScalacOptions(scalaVersion: String): Seq[String] = CrossVersion.partialVersion(scalaVersion) match {
@@ -41,7 +41,7 @@ def circeVersion(scalaVersion: String): String = CrossVersion.partialVersion(sca
 
 def catsEffectVersion(scalaVersion: String): String = CrossVersion.partialVersion(scalaVersion) match {
   case Some((2, scalaMinor)) if scalaMinor == 12 => "1.4.0"
-  case _                                         => "2.0.0-M5"
+  case _                                         => "2.0.0"
 }
 
 def http4sVersion(scalaVersion: String): String = CrossVersion.partialVersion(scalaVersion) match {
@@ -91,6 +91,7 @@ val core = (project in file("modules/core"))
 
       val scalaCache = Seq(
         "com.github.cb372" %% "scalacache-core",
+        "com.github.cb372" %% "scalacache-cats-effect",
         "com.github.cb372" %% "scalacache-caffeine"
       ).map(_ % scalaCacheVersion)
 
