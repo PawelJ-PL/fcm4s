@@ -6,7 +6,6 @@ import cats.effect.{Clock, IO}
 import cats.syntax.either._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
-import cats.syntax.monadError._
 import cats.syntax.traverse._
 import com.github.pawelj_pl.fcm4s.auth.AccessTokenAuth
 import com.github.pawelj_pl.fcm4s.auth.config.CredentialsConfig
@@ -14,7 +13,7 @@ import com.github.pawelj_pl.fcm4s.http.HttpBackend
 import com.github.pawelj_pl.fcm4s.utils.TimeProvider
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
-import org.http4s.implicits._
+import org.http4s.Uri
 import scalacache.Mode
 
 trait Messaging[F[_]] {
@@ -27,16 +26,18 @@ object Messaging {
   def apply[F[_]](implicit ev: Messaging[F]): Messaging[F] = ev
 
   def create[F[_]: Monad: AccessTokenAuth: HttpBackend](config: CredentialsConfig): Messaging[F] = new Messaging[F] {
-    private val SendMessageUri = uri"https://fcm.googleapis.com/v1/projects" / config.projectId / "messages:send"
+    private val SendMessageUri = Uri.uri("https://fcm.googleapis.com/v1/projects") / config.projectId / "messages:send"
 
-    override def send(message: Message): F[Either[ErrorResponse, String]] = for {
-      token <- AccessTokenAuth[F].token
-      resp  <-HttpBackend[F].sendPost[Message, SendMessageResponse](SendMessageUri, message, token)
-    } yield resp.bimap({case (code, body) => ErrorResponse(code, body)}, _.name)
+    override def send(message: Message): F[Either[ErrorResponse, String]] =
+      for {
+        token <- AccessTokenAuth[F].token
+        resp  <- HttpBackend[F].sendPost[Message, SendMessageResponse](SendMessageUri, message, token)
+      } yield resp.bimap({ case (code, body) => ErrorResponse(code, body) }, _.name)
 
-    override def sendMany(messages: List[Message]): F[List[Either[ErrorResponse, String]]] = messages
-      .map(m => send(m))
-      .sequence
+    override def sendMany(messages: List[Message]): F[List[Either[ErrorResponse, String]]] =
+      messages
+        .map(m => send(m))
+        .sequence
 
     override def sendMany(messages: Message*): F[List[Either[ErrorResponse, String]]] = sendMany(messages.toList)
   }
@@ -50,7 +51,14 @@ object Messaging {
   }
 
   def defaultIoMessaging(credentialsConfigPath: String)(implicit httpBackend: HttpBackend[IO]): IO[Messaging[IO]] = {
-    val config: IO[CredentialsConfig] = CredentialsConfig.fromFile[IO](credentialsConfigPath).map(_.leftMap(e => new RuntimeException(e.toString))).rethrow
+    import cats.implicits._
+    val config: IO[CredentialsConfig] =
+      CredentialsConfig
+        .fromFile[IO](credentialsConfigPath)
+        .map(_
+          .leftMap(e => new RuntimeException(e.toString))
+          .leftWiden[Throwable])
+        .rethrow
     config.map(defaultIoMessaging)
   }
 }
