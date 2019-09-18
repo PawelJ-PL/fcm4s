@@ -4,15 +4,15 @@ val commonScalacOptions = Seq(
   "-deprecation",
   "-encoding",
   "UTF-8",
-  "-unchecked",
-  "-explaintypes",
-  "-Xfatal-warnings",
-  "-Xlint:infer-any",
-  "-Xlint:private-shadow",
-  "-Xlint:missing-interpolator",
-  "-Ywarn-dead-code",
-  "-Ywarn-unused",
-  "-Ywarn-unused:privates",
+//  "-unchecked",
+//  "-explaintypes",
+//  "-Xfatal-warnings",
+//  "-Xlint:infer-any",
+//  "-Xlint:private-shadow",
+//  "-Xlint:missing-interpolator",
+//  "-Ywarn-dead-code",
+//  "-Ywarn-unused",
+//  "-Ywarn-unused:privates",
 )
 
 def versionDependentScalacOptions(scalaVersion: String): Seq[String] = CrossVersion.partialVersion(scalaVersion) match {
@@ -61,7 +61,7 @@ val commonSettings = Seq(
   name := "fcm4s",
   scalaVersion := "2.13.0",
   crossScalaVersions := Seq("2.13.0", "2.12.8"),
-  scalacOptions ++= commonScalacOptions ++ versionDependentScalacOptions(scalaVersion.value)
+  scalacOptions ++= commonScalacOptions ++ versionDependentScalacOptions(scalaVersion.value),
 )
 
 val core = (project in file("modules/core"))
@@ -76,7 +76,7 @@ val core = (project in file("modules/core"))
       val circe = Seq(
         "io.circe" %% "circe-parser",
         "io.circe" %% "circe-generic",
-        "io.circe" %% "circe-generic-extras"
+        "io.circe" %% "circe-generic-extras",
       ).map(_ % circeVersion(scalaVersion.value))
 
       val http4s = Seq(
@@ -95,7 +95,12 @@ val core = (project in file("modules/core"))
         "com.github.cb372" %% "scalacache-caffeine"
       ).map(_ % scalaCacheVersion)
 
-      circe ++ cats ++ http4s ++ tsec ++ scalaCache ++ versionDependentDependencies(scalaVersion.value)
+      val tests = Seq(
+        "org.scalatest" %% "scalatest" % "3.0.8",
+        "io.circe" %% "circe-literal" % circeVersion((scalaVersion.value))
+      ).map(_ % Test)
+
+      circe ++ cats ++ http4s ++ tsec ++ scalaCache ++ tests ++ versionDependentDependencies(scalaVersion.value)
     }
   )
 

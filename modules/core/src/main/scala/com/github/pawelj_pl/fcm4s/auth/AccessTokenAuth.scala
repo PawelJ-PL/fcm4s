@@ -5,8 +5,12 @@ import java.util.Base64
 
 import cats.data.OptionT
 import cats.effect.Sync
+import cats.syntax.either._
+import cats.syntax.bifunctor._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
+import cats.syntax.monadError._
+import cats.instances.either._
 import com.github.pawelj_pl.fcm4s.auth.config.CredentialsConfig
 import com.github.pawelj_pl.fcm4s.http.HttpBackend
 import com.github.pawelj_pl.fcm4s.utils.TimeProvider
@@ -36,13 +40,14 @@ object AccessTokenAuth {
 
     override def token: F[String] = refresh.map(_.accessToken)
 
-    override def refresh: F[AccessTokenResponse] = {
-      for {
-        jwt <- generateJwt
-        formData = Map("grant_type" -> grantType, "assertion" -> jwt)
-        resp <- HttpBackend[F].sendPostForm[AccessTokenResponse](config.tokenUri, formData)
-      } yield resp
-    }
+    override def refresh: F[AccessTokenResponse] = for {
+      jwt <- generateJwt
+      formData = Map("grant_type" -> grantType, "assertion" -> jwt)
+      resp <- HttpBackend[F]
+        .sendPostForm[AccessTokenResponse](config.tokenUri, formData)
+        .map(_.leftMap(e => new RuntimeException(e.toString)).leftWiden[Throwable])
+        .rethrow
+    } yield resp
 
     private def generateJwt: F[String] =
       for {
@@ -71,13 +76,15 @@ object AccessTokenAuth {
     private val CacheKey = s"token-${config.clientId}-${config.privateKeyId}"
     implicit val tokenResponseCache: CaffeineCache[AccessTokenResponse] = CaffeineCache[AccessTokenResponse]
 
-    override def token: F[String] = OptionT(get(CacheKey))
-      .getOrElseF(refresh)
-      .map(_.accessToken)
+    override def token: F[String] =
+      OptionT(get(CacheKey))
+        .getOrElseF(refresh)
+        .map(_.accessToken)
 
-    override def refresh: F[AccessTokenResponse] = for {
-      resp <- delegate.refresh
-      _    <- put(CacheKey)(resp, Some(Duration.create(resp.expiresIn, SECONDS)))
-    } yield resp
+    override def refresh: F[AccessTokenResponse] =
+      for {
+        resp <- delegate.refresh
+        _    <- put(CacheKey)(resp, Some(Duration.create(resp.expiresIn, SECONDS)))
+      } yield resp
   }
 }
