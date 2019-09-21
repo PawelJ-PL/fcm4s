@@ -2,10 +2,9 @@ package com.guthub.pawelj_pl.fcm4s.messaging
 
 import cats.effect.IO
 import com.github.pawelj_pl.fcm4s.Common.ErrorResponse
-import com.github.pawelj_pl.fcm4s.auth.{AccessTokenAuth, AccessTokenResponse}
 import com.github.pawelj_pl.fcm4s.auth.config.CredentialsConfig
 import com.github.pawelj_pl.fcm4s.messaging.{Destination, Messaging, NotificationMessage}
-import com.guthub.pawelj_pl.fcm4s.testhelpers.fakes.HttpBackendFake
+import com.guthub.pawelj_pl.fcm4s.testhelpers.fakes.{AccessTokenAuthFake, AuthCall, HttpBackendFake}
 import io.circe.Json
 import io.circe.literal._
 import org.http4s.Uri
@@ -21,13 +20,10 @@ class MessagingSpec extends WordSpec with Matchers {
   def httpBackend(responses: Seq[Either[(Int, String), Json]]): HttpBackendFake[IO] =
     HttpBackendFake.instanceF[IO](HttpBackendFake.BackendState(responses = responses)).unsafeRunSync()
 
-  implicit val authService: AccessTokenAuth[IO] = new AccessTokenAuth[IO] {
-    override def token: IO[String] = IO("someToken")
-
-    override def refresh: IO[AccessTokenResponse] = IO(AccessTokenResponse("someToken", 10, "bearer"))
-  }
+  def accessTokenAuth: AccessTokenAuthFake[IO] = AccessTokenAuthFake.instanceF[IO].unsafeRunSync()
 
   "Messaging" should {
+    implicit val auth: AccessTokenAuthFake[IO] = accessTokenAuth
     "send message and return message name" when {
       "got success response" in {
         implicit val backend: HttpBackendFake[IO] = httpBackend(
@@ -48,25 +44,21 @@ class MessagingSpec extends WordSpec with Matchers {
 
     "send message and return code and body" when {
       "got unexpected status code" in {
+        implicit val auth: AccessTokenAuthFake[IO] = accessTokenAuth
         implicit val backend: HttpBackendFake[IO] = httpBackend(
           Seq(
-            Right(
-              json"""{
-                "foo": "bar"
-              }"""
-            )
+            Left(403, "Forbidden")
           ))
 
         val service = Messaging.create[IO](ExampleCredentialsConfig)
         val result = service.send(ExampleMessage).unsafeRunSync()
 
-        result shouldBe Left(ErrorResponse(400, """unable to decode body: {
-                                                  |  "foo" : "bar"
-                                                  |}, error: Attempt to decode value on failed cursor""".stripMargin))
+        result shouldBe Left(ErrorResponse(403, "Forbidden"))
       }
     }
 
-    "Send many messages and return responses" in {
+    "Send many messages with single auth request and return responses" in {
+      implicit val auth: AccessTokenAuthFake[IO] = accessTokenAuth
       implicit val backend: HttpBackendFake[IO] = httpBackend(
         Seq(
           Right(
@@ -88,6 +80,7 @@ class MessagingSpec extends WordSpec with Matchers {
       result should contain theSameElementsAs List(
         Right("someName"),Left(ErrorResponse(503, "Unknown error")), Right("otherName")
       )
+      auth.getCalls.unsafeRunSync() should contain theSameElementsAs List(AuthCall.Token)
     }
   }
 }

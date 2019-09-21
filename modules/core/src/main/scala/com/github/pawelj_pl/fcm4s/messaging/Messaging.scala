@@ -7,6 +7,7 @@ import cats.syntax.either._
 import cats.syntax.flatMap._
 import cats.syntax.functor._
 import cats.syntax.traverse._
+import com.github.pawelj_pl.fcm4s.Common.ErrorResponse
 import com.github.pawelj_pl.fcm4s.auth.AccessTokenAuth
 import com.github.pawelj_pl.fcm4s.auth.config.CredentialsConfig
 import com.github.pawelj_pl.fcm4s.http.HttpBackend
@@ -28,16 +29,22 @@ object Messaging {
   def create[F[_]: Monad: AccessTokenAuth: HttpBackend](config: CredentialsConfig): Messaging[F] = new Messaging[F] {
     private val SendMessageUri = Uri.uri("https://fcm.googleapis.com/v1/projects") / config.projectId / "messages:send"
 
+    private def send(message: Message, authToken: String): F[Either[ErrorResponse, String]] =
+      HttpBackend[F]
+        .sendPost[Message, SendMessageResponse](SendMessageUri, message, authToken)
+        .map(_.bimap({ case (code, body) => ErrorResponse(code, body) }, _.name))
+
     override def send(message: Message): F[Either[ErrorResponse, String]] =
       for {
-        token <- AccessTokenAuth[F].token
-        resp  <- HttpBackend[F].sendPost[Message, SendMessageResponse](SendMessageUri, message, token)
-      } yield resp.bimap({ case (code, body) => ErrorResponse(code, body) }, _.name)
+        token  <- AccessTokenAuth[F].token
+        result <- send(message, token)
+      } yield result
 
     override def sendMany(messages: List[Message]): F[List[Either[ErrorResponse, String]]] =
-      messages
-        .map(m => send(m))
-        .sequence
+      for {
+        token  <- AccessTokenAuth[F].token
+        result <- messages.map(m => send(m, token)).sequence
+      } yield result
 
     override def sendMany(messages: Message*): F[List[Either[ErrorResponse, String]]] = sendMany(messages.toList)
   }
@@ -55,8 +62,7 @@ object Messaging {
     val config: IO[CredentialsConfig] =
       CredentialsConfig
         .fromFile[IO](credentialsConfigPath)
-        .map(_
-          .leftMap(e => new RuntimeException(e.toString))
+        .map(_.leftMap(e => new RuntimeException(e.toString))
           .leftWiden[Throwable])
         .rethrow
     config.map(defaultIoMessaging)
@@ -68,5 +74,3 @@ case class SendMessageResponse(name: String)
 object SendMessageResponse {
   implicit val decoder: Decoder[SendMessageResponse] = deriveDecoder[SendMessageResponse]
 }
-
-case class ErrorResponse(statusCode: Int, body: String)

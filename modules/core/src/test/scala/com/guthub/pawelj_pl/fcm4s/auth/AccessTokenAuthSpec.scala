@@ -47,7 +47,7 @@ class AccessTokenAuthSpec extends WordSpec with Matchers {
             Right(
               json"""{
                 "access_token": "resultToken",
-                "expires_in": 10,
+                "expires_in": 3600,
                 "token_type": "bearer"
               }"""
             )

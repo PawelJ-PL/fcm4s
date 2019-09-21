@@ -21,7 +21,7 @@ import tsec.jws.signature.{JWSSignedHeader, JWTSig}
 import tsec.jwt.{JWTClaims, JWTSingleAudience}
 import tsec.signature.jca.SHA256withRSA
 
-import scala.concurrent.duration.{Duration, SECONDS}
+import scala.concurrent.duration.{Duration, SECONDS, MINUTES}
 
 trait AccessTokenAuth[F[_]] {
   def token: F[String]
@@ -40,14 +40,15 @@ object AccessTokenAuth {
 
     override def token: F[String] = refresh.map(_.accessToken)
 
-    override def refresh: F[AccessTokenResponse] = for {
-      jwt <- generateJwt
-      formData = Map("grant_type" -> grantType, "assertion" -> jwt)
-      resp <- HttpBackend[F]
-        .sendPostForm[AccessTokenResponse](config.tokenUri, formData)
-        .map(_.leftMap(e => new RuntimeException(e.toString)).leftWiden[Throwable])
-        .rethrow
-    } yield resp
+    override def refresh: F[AccessTokenResponse] =
+      for {
+        jwt <- generateJwt
+        formData = Map("grant_type" -> grantType, "assertion" -> jwt)
+        resp <- HttpBackend[F]
+          .sendPostForm[AccessTokenResponse](config.tokenUri, formData)
+          .map(_.leftMap(e => new RuntimeException(e.toString)).leftWiden[Throwable])
+          .rethrow
+      } yield resp
 
     private def generateJwt: F[String] =
       for {
@@ -84,7 +85,10 @@ object AccessTokenAuth {
     override def refresh: F[AccessTokenResponse] =
       for {
         resp <- delegate.refresh
-        _    <- put(CacheKey)(resp, Some(Duration.create(resp.expiresIn, SECONDS)))
+        _    <- put(CacheKey)(
+          resp,
+          Some(Duration.create(resp.expiresIn, SECONDS).minus(Duration.create(2, MINUTES)))
+        )
       } yield resp
   }
 }
