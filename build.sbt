@@ -4,15 +4,15 @@ val commonScalacOptions = Seq(
   "-deprecation",
   "-encoding",
   "UTF-8",
-//  "-unchecked",
-//  "-explaintypes",
-//  "-Xfatal-warnings",
-//  "-Xlint:infer-any",
-//  "-Xlint:private-shadow",
-//  "-Xlint:missing-interpolator",
-//  "-Ywarn-dead-code",
-//  "-Ywarn-unused",
-//  "-Ywarn-unused:privates",
+  "-unchecked",
+  "-explaintypes",
+  "-Xfatal-warnings",
+  "-Xlint:infer-any",
+  "-Xlint:private-shadow",
+  "-Xlint:missing-interpolator",
+  "-Ywarn-dead-code",
+  "-Ywarn-unused",
+  "-Ywarn-unused:privates",
 )
 
 def versionDependentScalacOptions(scalaVersion: String): Seq[String] = CrossVersion.partialVersion(scalaVersion) match {
@@ -36,7 +36,7 @@ def versionDependentDependencies(scalaVersion: String) = CrossVersion.partialVer
 
 def circeVersion(scalaVersion: String): String = CrossVersion.partialVersion(scalaVersion) match {
   case Some((2, scalaMinor)) if scalaMinor == 12 => "0.11.1"
-  case _                                         => "0.12.0-M4"
+  case _                                         => "0.12.1"
 }
 
 def catsEffectVersion(scalaVersion: String): String = CrossVersion.partialVersion(scalaVersion) match {
@@ -46,7 +46,7 @@ def catsEffectVersion(scalaVersion: String): String = CrossVersion.partialVersio
 
 def http4sVersion(scalaVersion: String): String = CrossVersion.partialVersion(scalaVersion) match {
   case Some((2, scalaMinor)) if scalaMinor == 12 => "0.20.10"
-  case _                                         => "0.21.0-M4"
+  case _                                         => "0.21.0-M5"
 }
 
 def tsecVersion(scalaVersion: String): String = CrossVersion.partialVersion(scalaVersion) match {
@@ -62,6 +62,7 @@ val commonSettings = Seq(
   scalaVersion := "2.13.0",
   crossScalaVersions := Seq("2.13.0", "2.12.8"),
   scalacOptions ++= commonScalacOptions ++ versionDependentScalacOptions(scalaVersion.value),
+  useJGit,
 )
 
 val core = (project in file("modules/core"))
@@ -125,5 +126,6 @@ val root = (project in file("."))
     publish := {},
     publishLocal := {}
   )
+  .enablePlugins(GitVersioning)
   .aggregate(core, http4s)
   .dependsOn(core, http4s)

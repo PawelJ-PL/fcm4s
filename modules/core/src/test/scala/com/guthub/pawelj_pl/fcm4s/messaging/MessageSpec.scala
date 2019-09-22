@@ -66,7 +66,8 @@ class MessageSpec extends WordSpec with Matchers {
     "Encode NotificationMessage" which {
       "has all fields defined" in {
         val data = Map("foo" -> "1", "bar" -> "2")
-        val message = NotificationMessage(Destination.Topic("someTopic"), Some("someTitle"), Some("someBody"), Some("someImage"), Some(data))
+        val message =
+          NotificationMessage(Destination.Topic("someTopic"), Some("someTitle"), Some("someBody"), Some("someImage"), Some(data))
 
         val result = message.asJson
 
@@ -154,7 +155,6 @@ class MessageSpec extends WordSpec with Matchers {
               } """
       }
       "has no data defined" in {
-        val data = Map("foo" -> "1", "bar" -> "2")
         val message = NotificationMessage(Destination.Topic("someTopic"), Some("someTitle"), Some("someBody"), Some("someImage"), None)
 
         val result = message.asJson
