@@ -63,6 +63,8 @@ val commonSettings = Seq(
   crossScalaVersions := Seq("2.13.0", "2.12.8"),
   scalacOptions ++= commonScalacOptions ++ versionDependentScalacOptions(scalaVersion.value),
   useJGit,
+  sonatypeBundleDirectory := (ThisBuild / baseDirectory).value / target.value.getName / "sonatype-staging" / s"${version.value}",
+  publishTo := sonatypePublishToBundle.value,
 )
 
 val core = (project in file("modules/core"))
@@ -98,7 +100,7 @@ val core = (project in file("modules/core"))
 
       val tests = Seq(
         "org.scalatest" %% "scalatest" % "3.0.8",
-        "io.circe" %% "circe-literal" % circeVersion((scalaVersion.value))
+        "io.circe" %% "circe-literal" % circeVersion(scalaVersion.value)
       ).map(_ % Test)
 
       circe ++ cats ++ http4s ++ tsec ++ scalaCache ++ tests ++ versionDependentDependencies(scalaVersion.value)
@@ -124,7 +126,8 @@ val root = (project in file("."))
   .settings(
     publishArtifact := false,
     publish := {},
-    publishLocal := {}
+    publishLocal := {},
+    aggregate in sonatypeBundleRelease := false
   )
   .enablePlugins(GitVersioning)
   .aggregate(core, http4s)
