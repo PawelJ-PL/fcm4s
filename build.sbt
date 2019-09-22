@@ -127,7 +127,6 @@ val root = (project in file("."))
     publishArtifact := false,
     publish := {},
     publishLocal := {},
-    aggregate in sonatypeBundleRelease := false
   )
   .enablePlugins(GitVersioning)
   .aggregate(core, http4s)
