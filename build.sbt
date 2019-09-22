@@ -56,16 +56,37 @@ def tsecVersion(scalaVersion: String): String = CrossVersion.partialVersion(scal
 
 val scalaCacheVersion = "0.28.0"
 
+val publishSettings = List(
+  useJGit,
+  sonatypeBundleDirectory := (ThisBuild / baseDirectory).value / target.value.getName / "sonatype-staging" / s"${version.value}",
+  publishTo := sonatypePublishToBundle.value,
+  publishMavenStyle := true,
+  developers := List(
+    Developer(
+      id    = "Pawelj-PL",
+      name  = "Pawel",
+      email = "inne.poczta@gmail.com",
+      url   = url("https://github.com/PawelJ-PL")
+    )
+  ),
+  scmInfo := Some(
+    ScmInfo(
+      url("https://github.com/PawelJ-PL/fcm4s"),
+      "scm:https://github.com/PawelJ-PL/fcm4s.git"
+    )
+  ),
+  pomIncludeRepository := { _ => false },
+  licenses := Seq("Apache 2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0")),
+  homepage := Some(url("https://github.com/PawelJ-PL/fcm4s"))
+)
+
 val commonSettings = Seq(
   organization := "com.github.pawelj-pl",
   name := "fcm4s",
   scalaVersion := "2.13.0",
   crossScalaVersions := Seq("2.13.0", "2.12.8"),
-  scalacOptions ++= commonScalacOptions ++ versionDependentScalacOptions(scalaVersion.value),
-  useJGit,
-  sonatypeBundleDirectory := (ThisBuild / baseDirectory).value / target.value.getName / "sonatype-staging" / s"${version.value}",
-  publishTo := sonatypePublishToBundle.value,
-)
+  scalacOptions ++= commonScalacOptions ++ versionDependentScalacOptions(scalaVersion.value)
+) ++ publishSettings
 
 val core = (project in file("modules/core"))
   .settings(commonSettings)

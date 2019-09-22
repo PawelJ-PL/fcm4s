@@ -15,24 +15,3 @@ credentials ++= (
   )
   ).toSeq
 
-pomIncludeRepository := { _ => false }
-licenses := Seq("Apache 2.0" -> url("http://www.apache.org/licenses/LICENSE-2.0"))
-homepage := Some(url("https://github.com/PawelJ-PL/fcm4s"))
-
-scmInfo := Some(
-  ScmInfo(
-    url("https://github.com/PawelJ-PL/fcm4s"),
-    "scm:https://github.com/PawelJ-PL/fcm4s.git"
-  )
-)
-
-developers := List(
-  Developer(
-    id    = "Pawelj-PL",
-    name  = "Pawel",
-    email = "inne.poczta@gmail.com",
-    url   = url("https://github.com/PawelJ-PL")
-  )
-)
-
-publishMavenStyle := true
