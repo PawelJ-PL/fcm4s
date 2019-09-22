@@ -86,9 +86,10 @@ val commonSettings = Seq(
   scalaVersion := "2.13.0",
   crossScalaVersions := Seq("2.13.0", "2.12.8"),
   scalacOptions ++= commonScalacOptions ++ versionDependentScalacOptions(scalaVersion.value)
-) ++ publishSettings
+)
 
 val core = (project in file("modules/core"))
+  .settings(publishSettings)
   .settings(commonSettings)
   .settings(
     name += "-core",
@@ -129,6 +130,7 @@ val core = (project in file("modules/core"))
   )
 
 val http4s = (project in file("modules/http4s"))
+  .settings(publishSettings)
   .settings(commonSettings)
   .settings(
     name += "-http4s",
@@ -143,6 +145,7 @@ val http4s = (project in file("modules/http4s"))
   .dependsOn(core)
 
 val root = (project in file("."))
+  .settings(publishSettings)
   .settings(commonSettings)
   .settings(
     publishArtifact := false,
