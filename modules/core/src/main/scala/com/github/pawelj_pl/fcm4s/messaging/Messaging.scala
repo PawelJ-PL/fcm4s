@@ -18,9 +18,9 @@ import org.http4s.Uri
 import scalacache.Mode
 
 trait Messaging[F[_]] {
-  def send(message: Message): F[Either[ErrorResponse, String]]
-  def sendMany(messages: List[Message]): F[List[Either[ErrorResponse, String]]]
-  def sendMany(messages: Message*): F[List[Either[ErrorResponse, String]]]
+  def send[A: MessageDataEncoder](message: Message[A]): F[Either[ErrorResponse, String]]
+  def sendMany[A: MessageDataEncoder](messages: List[Message[A]]): F[List[Either[ErrorResponse, String]]]
+  def sendMany[A: MessageDataEncoder](messages: Message[A]*): F[List[Either[ErrorResponse, String]]]
 }
 
 object Messaging {
@@ -29,24 +29,24 @@ object Messaging {
   def create[F[_]: Monad: AccessTokenAuth: HttpBackend](config: CredentialsConfig): Messaging[F] = new Messaging[F] {
     private val SendMessageUri = Uri.uri("https://fcm.googleapis.com/v1/projects") / config.projectId / "messages:send"
 
-    private def send(message: Message, authToken: String): F[Either[ErrorResponse, String]] =
+    private def send[A: MessageDataEncoder](message: Message[A], authToken: String): F[Either[ErrorResponse, String]] =
       HttpBackend[F]
-        .sendPost[Message, SendMessageResponse](SendMessageUri, message, authToken)
+        .sendPost[Message[A], SendMessageResponse](SendMessageUri, message, authToken)
         .map(_.bimap({ case (code, body) => ErrorResponse(code, body) }, _.name))
 
-    override def send(message: Message): F[Either[ErrorResponse, String]] =
+    override def send[A: MessageDataEncoder](message: Message[A]): F[Either[ErrorResponse, String]] =
       for {
         token  <- AccessTokenAuth[F].token
         result <- send(message, token)
       } yield result
 
-    override def sendMany(messages: List[Message]): F[List[Either[ErrorResponse, String]]] =
+    override def sendMany[A: MessageDataEncoder](messages: List[Message[A]]): F[List[Either[ErrorResponse, String]]] =
       for {
         token  <- AccessTokenAuth[F].token
         result <- messages.map(m => send(m, token)).sequence
       } yield result
 
-    override def sendMany(messages: Message*): F[List[Either[ErrorResponse, String]]] = sendMany(messages.toList)
+    override def sendMany[A: MessageDataEncoder](messages: Message[A]*): F[List[Either[ErrorResponse, String]]] = sendMany(messages.toList)
   }
 
   def defaultIoMessaging(credentialsConfig: CredentialsConfig)(implicit httpBackend: HttpBackend[IO]): Messaging[IO] = {

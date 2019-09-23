@@ -3,12 +3,12 @@ package com.github.pawelj_pl.fcm4s.messaging
 import io.circe.{Encoder, Json}
 import io.circe.syntax._
 
-sealed trait Message
+sealed trait Message[A]
 
 object Message {
-  implicit val encoder: Encoder[Message] = Encoder.instance {
-    case m: DataMessage         => m.asJson
-    case m: NotificationMessage => m.asJson
+  implicit def encoder[A: MessageDataEncoder]: Encoder[Message[A]] = Encoder.instance {
+    case m: DataMessage[A]         => m.asJson
+    case m: NotificationMessage[A] => m.asJson
   }
 
   private[messaging] def destinationAsJsonEntry(destination: Destination): (String, Json) = destination match {
@@ -18,34 +18,34 @@ object Message {
   }
 }
 
-final case class DataMessage(destination: Destination, data: MessageData) extends Message
+final case class DataMessage[A: MessageDataEncoder](destination: Destination, data: A) extends Message[A]
 
 object DataMessage {
-  implicit val encoder: Encoder[DataMessage] = new Encoder[DataMessage] {
-    override def apply(a: DataMessage): Json = {
+  implicit def encoder[A: MessageDataEncoder]: Encoder[DataMessage[A]] = new Encoder[DataMessage[A]] {
+    override def apply(a: DataMessage[A]): Json = {
       val destinationJson = Message.destinationAsJsonEntry(a.destination)
       Json.obj(
         ("message",
          Json.obj(
            destinationJson,
-           ("data", a.data.asJson)
+           ("data", MessageDataEncoder[A].encode(a.data).asJson)
          ))
       )
     }
   }
 }
 
-final case class NotificationMessage(
+final case class NotificationMessage[A: MessageDataEncoder](
   destination: Destination,
   title: Option[String] = None,
   body: Option[String] = None,
   image: Option[String] = None,
-  data: Option[MessageData] = None)
-    extends Message
+  data: Option[A] = None)
+    extends Message[A]
 
 object NotificationMessage {
-  implicit val encoder: Encoder[NotificationMessage] = new Encoder[NotificationMessage] {
-    override def apply(a: NotificationMessage): Json = {
+  implicit def encoder[A: MessageDataEncoder]: Encoder[NotificationMessage[A]] = new Encoder[NotificationMessage[A]] {
+    override def apply(a: NotificationMessage[A]): Json = {
       val destinationJson = Message.destinationAsJsonEntry(a.destination)
       Json.obj(
         ("message",
@@ -57,7 +57,7 @@ object NotificationMessage {
               ("body", a.body.map(Json.fromString).getOrElse(Json.Null)),
               ("image", a.image.map(Json.fromString).getOrElse(Json.Null))
             )),
-           ("data", a.data.map(data => data.asJson).getOrElse(Json.Null))
+           ("data", a.data.map(data => MessageDataEncoder[A].encode(data).asJson).getOrElse(Json.Null))
          ))
       )
     }

@@ -79,6 +79,17 @@ val m2 = NotificationMessage(Destination.Token("abc"), title = Some("Some title"
 val m3 = NotificationMessage(Destination.Condition("'TopicB' in topics || 'TopicC' in topics"), title = Some("example title"))  //Notification message with condition destination and title only
 ```
 
+##### Message data
+Both Notification message and data message can contain payload passed to message (for MessageData it's required). It can be any type with instance of `MessageDataEncoder`. There is default instance for type `Map[String, String]`. For any other type custom instance have to be created. For example:
+
+```scala
+import com.github.pawelj_pl.fcm4s.messaging.{Destination, MessageDataEncoder, NotificationMessage}
+
+case class Data(foo: String, bar: Int)
+implicit val dataEncoder: MessageDataEncoder[Data] = MessageDataEncoder.deriveFrom[Data](data => Map("foo" -> data.foo, "bar" -> data.bar.toString))
+val ExampleMessage = NotificationMessage(Destination.Topic("someTopic"))
+```
+
 ## Http backend
 
 The library require implementation of `com.github.pawelj_pl.fcm4s.http.HttpBackend`. There are no built-in implementation, but you can use implementation based on [Http4s client](https://github.com/http4s/http4s):
