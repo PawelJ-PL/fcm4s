@@ -1,5 +1,7 @@
 # Fcm4s
 
+[![Maven Central](https://img.shields.io/maven-central/v/com.github.pawelj-pl/fcm4s-core_2.13.svg)](https://img.shields.io/maven-central/v/com.github.pawelj-pl/fcm4s-core_2.13.svg)
+
 FCM ([Firebase Cloud Messaging](https://firebase.google.com/docs/cloud-messaging)) library for Scala. At the moment it supports only sending messages without platform customization (support for platform config will be added in the future).
 
 ## Getting started
