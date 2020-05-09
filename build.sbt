@@ -34,28 +34,6 @@ def versionDependentDependencies(scalaVersion: String) = CrossVersion.partialVer
   case _                                         => Seq()
 }
 
-def circeVersion(scalaVersion: String): String = CrossVersion.partialVersion(scalaVersion) match {
-  case Some((2, scalaMinor)) if scalaMinor == 12 => "0.11.1"
-  case _                                         => "0.12.1"
-}
-
-def catsEffectVersion(scalaVersion: String): String = CrossVersion.partialVersion(scalaVersion) match {
-  case Some((2, scalaMinor)) if scalaMinor == 12 => "1.4.0"
-  case _                                         => "2.0.0"
-}
-
-def http4sVersion(scalaVersion: String): String = CrossVersion.partialVersion(scalaVersion) match {
-  case Some((2, scalaMinor)) if scalaMinor == 12 => "0.20.10"
-  case _                                         => "0.21.0-M5"
-}
-
-def tsecVersion(scalaVersion: String): String = CrossVersion.partialVersion(scalaVersion) match {
-  case Some((2, scalaMinor)) if scalaMinor == 12 => "0.1.0"
-  case _                                         => "0.2.0-M1"
-}
-
-val scalaCacheVersion = "0.28.0"
-
 val publishSettings = List(
   useJGit,
   sonatypeBundleDirectory := (ThisBuild / baseDirectory).value / target.value.getName / "sonatype-staging" / s"${version.value}",
@@ -95,37 +73,41 @@ val core = (project in file("modules/core"))
     name += "-core",
     libraryDependencies ++= {
       val cats = Seq(
-        "org.typelevel" %% "cats-effect" % catsEffectVersion(scalaVersion.value)
+        "org.typelevel" %% "cats-effect" % "2.1.3"
       )
 
       val circe = Seq(
         "io.circe" %% "circe-parser",
         "io.circe" %% "circe-generic",
         "io.circe" %% "circe-generic-extras",
-      ).map(_ % circeVersion(scalaVersion.value))
+      ).map(_ % "0.13.0")
+
+      val circeDerivation = Seq(
+        "io.circe" %% "circe-derivation" % "0.13.0-M4"
+      )
 
       val http4s = Seq(
         "org.http4s" %% "http4s-core",
         "org.http4s" %% "http4s-circe"
-      ).map(_ % http4sVersion(scalaVersion.value))
+      ).map(_ % "0.21.4")
 
       val tsec = Seq(
         "io.github.jmcardon" %% "tsec-jwt-sig",
         "io.github.jmcardon" %% "tsec-signatures"
-      ).map(_ % tsecVersion(scalaVersion.value))
+      ).map(_ % "0.2.0")
 
       val scalaCache = Seq(
         "com.github.cb372" %% "scalacache-core",
         "com.github.cb372" %% "scalacache-cats-effect",
         "com.github.cb372" %% "scalacache-caffeine"
-      ).map(_ % scalaCacheVersion)
+      ).map(_ % "0.28.0")
 
       val tests = Seq(
         "org.scalatest" %% "scalatest" % "3.0.8",
-        "io.circe" %% "circe-literal" % circeVersion(scalaVersion.value)
+        "io.circe" %% "circe-literal" % "0.13.0"
       ).map(_ % Test)
 
-      circe ++ cats ++ http4s ++ tsec ++ scalaCache ++ tests ++ versionDependentDependencies(scalaVersion.value)
+      circe ++ circeDerivation ++ cats ++ http4s ++ tsec ++ scalaCache ++ tests ++ versionDependentDependencies(scalaVersion.value)
     }
   )
 
@@ -137,7 +119,7 @@ val http4s = (project in file("modules/http4s"))
     libraryDependencies ++= {
       val http4s = Seq(
         "org.http4s" %% "http4s-blaze-client",
-      ).map(_ % http4sVersion(scalaVersion.value))
+      ).map(_ % "0.21.4")
 
       http4s
     }
